@@ -1,0 +1,111 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Menus">
+      <UniqueIdentifier>{47616af9-d00a-43e2-8b56-06d907774ed2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Menus\Header Files">
+      <UniqueIdentifier>{2e0da03c-698f-4c1b-9aaf-d354af315e2c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Menus\Source FIles">
+      <UniqueIdentifier>{c454d0c0-6e24-4414-bde8-3cb0d38b216e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="menu_main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SerialHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cModbus_Device.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="menus\menu_connections.cpp">
+      <Filter>Menus\Source FIles</Filter>
+    </ClCompile>
+    <ClCompile Include="menus\menu_devices.cpp">
+      <Filter>Menus\Source FIles</Filter>
+    </ClCompile>
+    <ClCompile Include="menus\menu_script.cpp">
+      <Filter>Menus\Source FIles</Filter>
+    </ClCompile>
+    <ClCompile Include="menus\menu_view.cpp">
+      <Filter>Menus\Source FIles</Filter>
+    </ClCompile>
+    <ClCompile Include="deviceDetailDisplay.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cModbus_Template_Manager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Modbus_Poller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="tui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="menu_main.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SerialHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="main.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cModbus_Device.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="menus\menu_connections.h">
+      <Filter>Menus\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="menus\menu_devices.h">
+      <Filter>Menus\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="menus\menu_script.h">
+      <Filter>Menus\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="menus\menu_view.h">
+      <Filter>Menus\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="deviceDetailDisplay.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fstream_redirect.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cModbus_Template_Manager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cModbus_Template_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Modbus_Poller.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="PCM_Modbus_Template.txt" />
+  </ItemGroup>
+</Project>
