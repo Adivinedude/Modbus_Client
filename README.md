@@ -5,7 +5,7 @@ Original authors credits are still contained with in tui.h, tui.cpp.
 Many features have been added to this library, but it is fundimently the same menu based program.
 My thinks to the origional author.
 Current Build Instructions
-
+```
 For a PC Running windows 11 ( as of 2023/11 )
 
 Step 1)	install microsoft visual studio 2022 from https://visualstudio.microsoft.com/downloads/
@@ -47,3 +47,6 @@ Step 8) Click "File" > "Open" > "Open Project/Solution"
 	Navigate to the "ModbusClient" folder and open "ModbusCLient.sln"
 
 Step 9) Press F5 to build and launch the application
+```
+Special Notes.
+To run the program outside of visual studio, the modbus.dll needs to be moved into the same folder as the executable.
