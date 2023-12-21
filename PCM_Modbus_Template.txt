@@ -1,0 +1,153 @@
+#special registers for the controller
+     # white spaces are ignored
+
+0x14 i Ram # comments can be placed at the end of any line.
+0x15 i Speed
+
+#coils
+0x00 c 1 Enable
+0x01 c 1 Feedback
+0x02 c 1 Debug
+0x03 c 1 Direction
+
+0x04 c 2 Enable
+0x05 c 2 Feedback
+0x06 c 2 Debug
+0x07 c 2 Direction
+
+0x08 c 3 Enable
+0x09 c 3 Feedback
+0x0a c 3 Debug
+0x0b c 3 Direction
+
+0x0c c 4 Enable
+0x0d c 4 Feedback
+0x0e c 4 Debug
+0x0f c 4 Direction
+
+#discrete inputs
+0x00 d 1 Busy
+0x01 d 1 Error
+
+0x02 d 2 Busy
+0x03 d 2 Error
+
+0x04 d 3 Busy
+0x05 d 3 Error
+
+0x06 d 4 Busy
+0x07 d 4 Error
+
+#These will vary by motor type selected. 
+#DC Motor controlled by H-Bridge
+# '@' 'address' 'register' is the programming format.
+
+#holding registers
+0x03 h 1 Type
+0x07 h 2 Type
+0x0B h 3 Type
+0x0F h 4 Type
+
+################################
+#   pump 1 template for dc motor
+@ 0x03 h 0
+0x00 h 1 Cal
+0x01 h 1 Duration
+0x02 h 1 Dose
+0x03 h 1 Type
+0x00 i 1 Pulses
+0x01 i 1 Time
+0x02 i 1 Addition
+0x03 i 1 Timer
+0x04 i 1 TOTAL
+@
+#   pump 1 template for Servo controller
+@0x03 h 1
+0x00 h Servo 3
+0x01 h Servo 2
+0x02 h Servo 1
+0x03 h 1 Type
+0x00 i 1 Pulses
+0x01 i N/A
+0x02 i N/A
+0x03 i N/A
+0x04 i N/A
+@
+
+################################
+#   pump 2 template for dc motor
+@0x07 h 0
+0x04 h 2 Cal
+0x05 h 2 Duration
+0x06 h 2 Dose
+0x07 h 2 Type
+0x05 i 2 Pulses
+0x06 i 2 Time
+0x07 i 2 Addition 
+0x08 i 2 Timer
+0x09 i 2 TOTAL
+@
+#   pump 2 template for servo controller
+@0x07 h 1
+0x04 h Servo 3
+0x05 h Servo 2
+0x06 h Servo 1
+0x07 h 2 Type
+0x05 i 2 Pulses
+0x06 i N/A
+0x07 i N/A
+0x08 i N/A
+0x09 i N/A
+@
+
+################################
+#    pump 3 template for dc motor
+@0x0b h 0
+0x08 h 3 Cal
+0x09 h 3 Duration
+0x0A h 3 Dose
+0x0B h 3 Type
+0x0a i 3 Pulses
+0x0b i 3 Time
+0x0c i 3 Addition 
+0x0d i 3 Timer
+0x0e i 3 TOTAL
+@
+#    pump 3 template for servo controller
+@0x0b h 1
+0x08 h Servo 3
+0x09 h Servo 2
+0x0A h Servo 1
+0x0B h 3 Type
+0x0a i 3 Pulses
+0x0b i N/A
+0x0c i N/A
+0x0d i N/A
+0x0e i N/A
+@
+
+################################
+#    pump 4 template for dc motor
+@0x0f h 0
+0x0C h 4 Cal
+0x0D h 4 Duration
+0x0E h 4 Dose
+0x0F h 4 Type
+0x0f i 4 Pulses
+0x10 i 4 Time
+0x11 i 4 Addition 
+0x12 i 4 Timer
+0x13 i 4 TOTAL
+@
+#    pump 4 template for servo controller
+@0x0f h 1
+0x0C h Servo 3
+0x0D h Servo 2
+0x0E h Servo 1
+0x0F h 4 Type
+0x0f i 4 Pulses
+0x10 i N/A
+0x11 i N/A
+0x12 i N/A
+0x13 i N/A
+@

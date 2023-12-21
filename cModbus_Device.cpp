@@ -5,41 +5,45 @@
 #include <iomanip>
 #include "cModbus_Template_Manager.h"
 
-modbus_t* modbus = 0;
-
 cModbus_Device::cModbus_Device(){
 	template_id = 0;
+	last_update_time = 0;
 	ModbusAddress = 0xFFFF;		//Modbus Address
 
 	pCoils = 0;				//pointer to coil buffer
 	nCoils = 0;				//number of coils
 	start_address_coils = 0;
 	clean_coils = 0;		//run cleanup code of buffer?
+	//update_coils = 0;
 
 	pDiscrete_input = 0;	//pointer to descrete input buffer
 	nDiscrete_input = 0;	//number of descrete input
 	start_address_discrete_input = 0;
 	clean_discrete_input = 0;
+	//update_discrete_input = 0;
 
 	pHolding_registers = 0;	//pointer to holding registers buffer
 	nHolding_registers = 0;	//number of holding registers
 	start_address_holding_registers = 0;
 	clean_holding_registers = 0;
+	//update_holding_register = 0;
 
 	pInput_registers = 0;	//pointer to input registers buffer
 	nInput_registers = 0;	//number of input registers
 	start_address_input_registers = 0;
 	clean_input_registers = 0;
+	//update_input_registers = 0;
 
+	memset(&default_options, 0, sizeof(default_options));
 	default_options.cell_size		= 17;
 	default_options.allign_prefix	= TEMPLATE_ALLIGN_LEFT;
 	//default_options.allign_root		= TEMPLATE_ALLIGN_CENTER;
 	default_options.allign_suffix	= TEMPLATE_ALLIGN_RIGHT;
 	default_options.root_string		= ":";
-	default_options.suffix_width	= 4;
-	default_options.suffix_prepend	= "0x";
-	default_options.suffix_fill		= '0';
-	default_options.manipulator		= std::hex;
+	//default_options.suffix_width	= 4;
+	//default_options.suffix_prepend	= "0x";
+	//default_options.suffix_fill		= '0';
+	default_options.manipulator		= std::dec;
 }
 cModbus_Device::~cModbus_Device() {
 	clear_coils();
@@ -126,8 +130,12 @@ void cModbus_Device::error_check_access(void* p, size_t starting_address, size_t
 	if ( (address < starting_address)
 		||
 		(starting_address + size < address)
-		)
-		throw std::invalid_argument("Address out of range");
+		){
+			std::stringstream st;
+			st << "cModbus_Device:Access Error <" << std::dec << GetAddress() << ":" << std::hex << address
+				<< ">" << "Address out of range";
+			throw std::invalid_argument(st.str());
+		}
 }
 
 ////////// config methods	//////////
@@ -340,7 +348,10 @@ uint16_t	cModbus_Device::GetCoil(uint16_t address)
 void		cModbus_Device::SetCoil(uint16_t address, bool value)
 {
 	error_check_access(pCoils, start_address_coils, nCoils, address);
-	pCoils[address - start_address_coils] = value;
+	//if( pCoils[address - start_address_coils]?1:0 != value){
+		pCoils[address - start_address_coils] = value;
+	//	update_coils = true;
+	//}
 }
 void		cModbus_Device::SetCoil(uint16_t address, const char* value) {
 	unsigned long v;
@@ -360,6 +371,14 @@ uint16_t	cModbus_Device::GetDiscreteInput(uint16_t address)
 	error_check_access(pDiscrete_input, start_address_discrete_input, nDiscrete_input, address);
 	return pDiscrete_input[address - start_address_discrete_input];
 }
+void		cModbus_Device::SetDiscreteInput(uint16_t address, uint16_t value)
+{
+	error_check_access(pDiscrete_input, start_address_discrete_input, nDiscrete_input, address);
+	//if(pDiscrete_input[address - start_address_discrete_input] != value ? 1 : 0){
+		pDiscrete_input[address - start_address_discrete_input] = value?1:0;
+	//	update_input_registers = true;
+	//}
+}
 
 //Holding Register
 uint16_t	cModbus_Device::GetHoldingRegister(uint16_t address)
@@ -370,7 +389,10 @@ uint16_t	cModbus_Device::GetHoldingRegister(uint16_t address)
 void		cModbus_Device::SetHoldingRegister(uint16_t address, uint16_t value)
 {
 	error_check_access(pHolding_registers, start_address_holding_registers, nHolding_registers, address);
-	pHolding_registers[address - start_address_holding_registers] = value;
+	//if(pHolding_registers[address - start_address_holding_registers] != value){
+		pHolding_registers[address - start_address_holding_registers] = value;
+	//	update_holding_register = true;
+	//}
 }
 void		cModbus_Device::SetHoldingRegister(uint16_t address, const char* value) {
 	unsigned long v = std::stoul(value, nullptr, 10);
@@ -380,10 +402,18 @@ void		cModbus_Device::SetHoldingRegister(uint16_t address, const char* value) {
 }
 
 //Input Register
-uint16_t cModbus_Device::GetInputRegister(uint16_t address)
+uint16_t	cModbus_Device::GetInputRegister(uint16_t address)
 {
 	error_check_access(pInput_registers, start_address_input_registers, nInput_registers, address);
 	return pInput_registers[address - start_address_input_registers];
+}
+void		cModbus_Device::SetInputRegister(uint16_t address, uint16_t value)
+{
+	error_check_access(pInput_registers, start_address_input_registers, nInput_registers, address);
+	//if(pInput_registers[address - start_address_input_registers] != value){
+		pInput_registers[address - start_address_input_registers] = value;
+	//	update_input_registers = true;
+	//}
 }
 
 ////////// Make Formatted String //////////
@@ -504,7 +534,7 @@ std::string cModbus_Device::GetFormattedString_Address(uint16_t, const T_Options
 std::string cModbus_Device::GetFormattedString(uint16_t address, uint32_t type, uint16_t (cModbus_Device::*method)(uint16_t), const T_Options* options) {
 	std::stringstream st;
 	std::string prefix;
-	const char* template_string = GetFormattedTemplate_String(address, TEMPLATE_ADDRESS_HOLDING_REGISTER);
+	const char* template_string = GetFormattedTemplate_String(address, type);
 	if (template_string)
 		prefix = template_string;
 	else {
@@ -513,7 +543,13 @@ std::string cModbus_Device::GetFormattedString(uint16_t address, uint32_t type, 
 		st.str(std::string());
 		st.clear();
 	}
-	return MakeFormattedString(prefix.c_str(), ((*this).*method)(address), options);
+	switch (type) {
+		case TEMPLATE_ADDRESS_COIL:
+		case TEMPLATE_ADDRESS_DISCRETE_INPUT:
+			return MakeFormattedString(prefix.c_str(), ((*this).*method)(address)?" ON":"OFF", options);
+		default:
+			return MakeFormattedString(prefix.c_str(), ((*this).*method)(address), options);
+	}
 }
 
 std::string cModbus_Device::GetFormattedString_Coil(uint16_t address, const T_Options* options) {

@@ -9,8 +9,8 @@
 
 	extern std::list<cModbus_Device>	_gDevice_List;
 	extern cTemplate_Database_Manager	_gManager;
-	extern menu_state					_gDeviceListMenuState;
-	extern bool							_gIsConnected;
+	
+	extern volatile bool				_gIsConnected;
 
-	void BuildDeviceListWindow();
+	void BuildDeviceList();
 #endif

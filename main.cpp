@@ -17,13 +17,14 @@
 
 //ToDo: completly rewrite this library to C++
 //it is a pain in the ass to manage all the string dumps
-//and menu structors
+//and menu structors ..... in progress
 #include "tui.h"                    // text user interface
 #include "modbus.h"
 #include "menu_main.h"              // Definition of the Root menu
 #include "deviceDetailDisplay.h"    // Definition of the Main Display (just a bunch of menu objects)
 #include "fstream_redirect.h"       // Recovers std::cerr and stderr streams into one stringstream object.
 #include "cModbus_Template_Manager.h"
+#include "Modbus_Poller.h"
 
 //Not very portable but easier than adding project settings 
 //as visual studio is not as make file firendly as other toolchains
@@ -31,9 +32,8 @@
 #pragma comment(lib, "..\\PDCurses\\wincon\\pdcurses.lib")      //Link the curses library
 
 // Global items
-std::list<cModbus_Device>  _gDevice_List;          //list of known device
-menu_state                  _gDeviceListMenuState;  //menu object for device list
-bool                        _gIsConnected = false;  //serial port status
+std::list<cModbus_Device>   _gDevice_List;          //list of known device
+volatile bool               _gIsConnected = false;  //serial port status
 std::stringstream           _gError_buffer;         //storage for error messages
 fstream_redirect            _gError_redirect(_gError_buffer,    //Capture stderr and std::cerr messages
                                                 std::cerr, 
@@ -47,31 +47,44 @@ void CleanupOnExit();// Function to execute at program termination
 bool restart = 0;
 //WINDOW *pDeviceListWindow = 0, *pDeviceDetailsWindow = 0;
 
+
+
 int main(int argc, char **argv)
 {   
+lock_poller();
 #ifdef _DEBUG
+ /*
+    //Got tired of typing this in every time.
     try{
         _gDevice_List.push_back(cModbus_Device());
         std::list<cModbus_Device>::iterator d = _gDevice_List.begin();
-        d->template_name = "..\\PCM_Modbus_Template.txt"; 
+        d->template_name = "PCM_Modbus_Template.txt"; 
         d->SetName("test 1");
         d->SetAddress("1");
         d->configureCoil(0, 16);
         d->configureDiscrete_input(0, 8);
         d->configureHolding_register(0, 16);
-        d->configureInput_register(0,22);
-        
-        _gManager.LoadFile("..\\PCM_Modbus_Template.txt");
+        d->configureInput_register(0,22); 
+        //d->update_coils = 1;
+        //d->update_discrete_input = 1;
+        //d->update_holding_register = 1;
+        //d->update_input_registers = 1;
+        _gManager.LoadFile("PCM_Modbus_Template.txt");
     }
     catch (const std::exception& ex) {
-        std::cout << ex.what();
+        std::cerr << ex.what();
+        system("pause");
         return 0;
     }
+*/
 #endif
 
     //set callback functions
     _loop = &loop;
     _keyLoop = &keyLoop;
+
+    //setip redraw body function
+    SetupBodyWindow();
 
     //Set application run switch to on.
     restart = 1;
@@ -83,9 +96,8 @@ int main(int argc, char **argv)
         beep();
         errormsg( "atexit() Failed" );
     }
-
     //setup body
-    BuildDeviceListWindow();
+    BuildDeviceList();
 
     int selection = 0;
     //main loop
@@ -107,7 +119,7 @@ int main(int argc, char **argv)
             //when the user left exit to main menu, 
             //when the user presses right, exit to device details
             case 1:
-                exMenu(&_gDeviceListMenuState, 0, 0);
+                exMenu(&sDetailList, 0, 0);
                 switch (key) {
                     case '\n':
                     case KEY_RIGHT:
@@ -145,29 +157,46 @@ int main(int argc, char **argv)
 }
 
 void CleanupOnExit(){
-    beep();
-    if (_gDeviceListMenuState.pMenu)
-        delete[] _gDeviceListMenuState.pMenu; // clear previous menu
+//    beep();
+    stop_poller();
+    unlock_poller();
+    if (sDetailList.pMenu){
+        delete[] sDetailList.pMenu; // clear previous menu
+        sDetailList.pMenu = 0;
+    }
     cleanDeviceDetailsMenus();
     cleanDeviceDetailsWindow();
-    if (_gDeviceListMenuState.pWindow)
-        delwin(_gDeviceListMenuState.pWindow);
-    if (pDeviceDetailsWindow)
+    if (sDetailList.pWindow){
+        delwin(sDetailList.pWindow);
+        sDetailList.pWindow = 0;
+    }
+    if (pDeviceDetailsWindow){
         delwin(pDeviceDetailsWindow);
+        pDeviceDetailsWindow = 0;
+    }
     cleanup();
 }
 
 //extern modbus_t* modbus;
 
+time_t redraw_timer = 0;
 void loop() {
-    //Read from the error buffer and write to the error window
- //   if(modbus)
- //       modbus->
+    std::string rt;
+    unlock_poller();
+    //modbus_poller();
+    Sleep(1);
+    //pipe stderr and std::cerr to the error readout
     _gError_redirect.update();
-    if (_gError_buffer.gcount()) {
-        errormsg( _gError_buffer.str().c_str() );
+    if ( (rt = _gError_buffer.str()).size() ) {
+        errormsg( rt.c_str() );
         _gError_buffer.str(std::string());
         _gError_buffer.clear();
+    }
+    lock_poller();
+    //redraw details if the device has updated
+    if( redraw_timer+1 <= current_time){
+        repaintBody();
+        redraw_timer = current_time;
     }
 }
 int keyLoop(int c) {
@@ -187,54 +216,4 @@ int keyLoop(int c) {
             break;
     }
     return c;
-}
-
-void OnSelectDevice(const uint16_t value) {  
-    buildDeviceDetail(value); 
-    paintDeviceDetails(); 
-}
-void OnClickDevice(const uint16_t value) {
-
-}
-void BuildDeviceListWindow() {
-    size_t s;
-
-    // clear previous menu
-    if( _gDeviceListMenuState.pMenu )
-        delete[] _gDeviceListMenuState.pMenu;
-    // clear the previous window
-    if (_gDeviceListMenuState.pWindow)
-        delwin(_gDeviceListMenuState.pWindow);
-
-    //make new meue for the device list
-    if (s = _gDevice_List.size() ) {
-        _gDeviceListMenuState.pMenu = new menu[s + 2];
-    }else {
-        _gDeviceListMenuState.pMenu = new menu[2];
-    }
-    //add menu header
-    _gDeviceListMenuState.pMenu[0] = { "Device List", DoNothing, "", MENU_DISABLE };
-
-    //add each device to the menu
-    {
-        menu* p = _gDeviceListMenuState.pMenu;
-        p++;
-        for (std::list<cModbus_Device>::iterator iter = _gDevice_List.begin(); 
-                iter != _gDevice_List.end(); iter++, p++) {
-            *p = { iter->GetName(), OnClickDevice, "", iter->GetAddress(), OnSelectDevice};
-        }
-    }
-    //terminate the menu
-    _gDeviceListMenuState.pMenu[s+1] = END_OF_MENU;
-
-    int y, x;
-    //Get the menu dimensions
-    menudim(_gDeviceListMenuState.pMenu, &y, &x);
-    //make new window for the menu
-    _gDeviceListMenuState.pWindow = derwin(bodywin(), y+2, x+2, 0, 0);
-    clsbody();                                      //clear main body window
-    colorbox(_gDeviceListMenuState.pWindow, SUBMENUCOLOR, 1);   //set color and outline
-    repaintmenu(&_gDeviceListMenuState);  //paint new menu
-    touchwin(bodywin());                            //paint body window
-    wrefresh(bodywin());
 }

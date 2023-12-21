@@ -14,6 +14,7 @@
     #include <curses.h>
     #include <stdint.h>
     #include <string>
+    #include <list>
 
     #ifdef A_COLOR
         #define A_ATTR  (A_ATTRIBUTES ^ A_COLOR)  /* A_BLINK, A_REVERSE, A_BOLD */
@@ -47,7 +48,7 @@
     #define KEY_ESC    0x1b     /* Escape */
 
     typedef void (*FUNC)(const uint16_t);               //menu function pointer
-    #define END_OF_MENU {"", (FUNC)0, ""}                 //menu terminator
+    #define END_OF_MENU {0, (FUNC)0, std::string()}     //menu terminator
     #define MENU_DISABLE (uint16_t) 0xFFFF              //menu disabled flag. causes item to be non selectable
 
     extern void     NotYetImplemented(const uint16_t value);// prints message saying feature is not implemented
@@ -56,17 +57,68 @@
     extern void     (*_loop) (void);                        // Loop function pointer for running external code in each idle() call
     extern time_t   current_time;
 
+    class menu_text{
+         public:
+            menu_text(){};
+            virtual             ~menu_text(){};
+            virtual const char* GetValue()=0;
+    };
+
+    class simple_menu_text : public menu_text {
+    private:
+        std::string content;
+        simple_menu_text();
+    public:
+        simple_menu_text(const char* s): content(std::string(s)){};
+        simple_menu_text(std::string s): content(s){};
+         ~simple_menu_text(){};
+        virtual const char* GetValue(){return content.c_str(); };
+    };
+
     typedef struct menu
     {
-        std::string     name;       /* item label                       */
+        menu_text*      pName;      /* item test                        */
         FUNC            func;       /* (pointer to) OnClick function    */
         std::string     desc;       /* function description             */
         uint16_t        value;      /* options value                    */
         FUNC            isSelected; /* (pointer to) OnSelect function   */
-        menu() :name(""), func(0), desc(""), value(0), isSelected(0) {};
-        menu(std::string n, FUNC f, std::string d) :name(n), func(f), desc(d), value(0), isSelected(0) {};
-        menu(std::string n, FUNC f, std::string d, uint16_t v) :name(n), func(f), desc(d), value(v), isSelected(0) {};
-        menu(std::string n, FUNC f, std::string d, uint16_t v, FUNC i) :name(n), func(f), desc(d), value(v), isSelected(i) {};
+        menu() :pName(0), func(0), desc(std::string()), value(0), isSelected(0) {};
+        //3 arguments
+        menu(const char* n, FUNC f, const char* d) :pName(new simple_menu_text(n)), func(f), desc(std::string(d)), value(0), isSelected(0) {};
+        menu(menu_text*  n, FUNC f, const char* d) :pName(n), func(f), desc(d), value(0), isSelected(0) {};
+        menu(menu_text*  n, FUNC f, std::string d) :pName(n), func(f), desc(d), value(0), isSelected(0) {};
+        //4 arguments
+        menu(const char* n, FUNC f, const char* d, uint16_t v) :pName(new simple_menu_text(n)), func(f), desc(std::string(d)), value(v), isSelected(0) {};
+        menu(menu_text*  n, FUNC f, const char* d, uint16_t v) :pName(n), func(f), desc(d), value(v), isSelected(0) {};
+        menu(menu_text*  n, FUNC f, std::string d, uint16_t v) :pName(n), func(f), desc(d), value(v), isSelected(0) {};
+        //5 arguments
+        menu(const char* n, FUNC f, const char* d, uint16_t v, FUNC i) :pName(new simple_menu_text(n)), func(f), desc(d), value(v), isSelected(i) {};
+        menu(menu_text*  n, FUNC f, const char* d, uint16_t v, FUNC i) :pName(n), func(f), desc(d), value(v), isSelected(i) {};
+        menu(menu_text*  n, FUNC f, std::string d, uint16_t v, FUNC i) :pName(n), func(f), desc(d), value(v), isSelected(i) {};
+
+        ~menu(){
+            if(pName)
+                delete pName; 
+        };
+        // move constructor 
+        menu(menu&& m) noexcept
+        {
+            *this = std::move(m);
+        }
+        // move assignment operator
+        menu& operator=(menu&& m) noexcept 
+        {
+            if (this != &m) {
+                pName = m.pName;
+                m.pName = 0;
+                func    = m.func;
+                desc    = std::move(m.desc);
+                value   = m.value;
+                isSelected = m.isSelected;
+            }
+            return *this;
+        }
+
     } menu;
 
     typedef struct menu_state
@@ -76,8 +128,12 @@
         int     cur;
         int     hotkey;
         WINDOW* pWindow;
-        menu_state() :pMenu(0), nitems(0), cur(0), hotkey(0), pWindow(0) {};
-        menu_state(menu* a, int b, int c, int d) : pMenu(a), nitems(b), cur(c), hotkey(d), pWindow(0) {};
+        bool    isSelected;
+        bool    alwaysSelected;
+        bool    alwaysDrawBox;
+        menu_state()                            :pMenu(0), nitems(0), cur(0), hotkey(0), pWindow(0), isSelected(0), alwaysSelected(0), alwaysDrawBox(0) {};
+        menu_state(WINDOW* w)                   :pMenu(0), nitems(0), cur(0), hotkey(0), pWindow(w), isSelected(0), alwaysSelected(0), alwaysDrawBox(0) {};
+        menu_state(menu* a, int b, int c, int d):pMenu(a), nitems(b), cur(c), hotkey(d), pWindow(0), isSelected(0), alwaysSelected(0), alwaysDrawBox(0) {};
     } menu_state;
 
     /* ANSI C function prototypes: */
@@ -104,6 +160,8 @@
     void    clsbody(void);
     int     bodylen(void);
     WINDOW *bodywin(void);
+    extern  std::list<menu_state*> BodyRedrawStack;
+    void    repaintBody(void);
 
     void    rmerror(void);
     void    rmstatus(void);

@@ -10,8 +10,17 @@
 		cModbus_Device();
 		~cModbus_Device();
 
-		std::string template_name;		//just throwing this in here ToDo: do it proper
+		std::string template_name;		//just throwing this in here ToDo: do it proper with divised class.
 		uint32_t	template_id;
+		long long	last_update_time;
+		/*
+		bool		update_coils;
+		bool		update_discrete_input;
+		bool		update_holding_register;
+		bool		update_input_registers;
+		*/
+		void force_update(){/*update_coils = 1; update_discrete_input = 1; update_holding_register = 1; update_input_registers = 1; */};
+
 		bool		IsConditionalAddress(uint32_t address);
 		//Setup functions
 		void configureCoil				(const char* starting_address, const char* size);		//Takes strings as inputs: assocoates memory
@@ -31,6 +40,11 @@
 		void configureInput_register	(size_t starting_address, uint16_t* pBuf, size_t size);
 
 		//Member Access Methods
+		uint8_t*	GetBufferCoil()									{ return pCoils; }
+		uint8_t*	GetBufferDiscreteInput()						{ return pDiscrete_input; }
+		uint16_t*	GetBufferHoldingRegister()						{ return pHolding_registers; }
+		uint16_t*	GetBufferInputRegister()						{ return pInput_registers; }
+
 		uint16_t	GetAddress()									{ return ModbusAddress; }
 		void		SetAddress(uint8_t _address);
 		void		SetAddress(const char* address);
@@ -49,6 +63,7 @@
 		uint16_t	GetDiscreteInputN()								{ return nDiscrete_input; }
 		uint16_t	GetStartDiscreteInput()							{ return start_address_discrete_input; }
 		uint16_t	GetDiscreteInput(uint16_t address);
+		void		SetDiscreteInput(uint16_t address, uint16_t value);
 
 		uint16_t	GetHoldingRegisterN()							{ return nHolding_registers; }
 		uint16_t	GetStartHoldingRegister()						{ return start_address_holding_registers; }
@@ -59,6 +74,7 @@
 		uint16_t	GetStartInputRegister()							{ return start_address_input_registers; }
 		uint16_t	GetInputRegisterN()								{ return nInput_registers; }
 		uint16_t	GetInputRegister(uint16_t address);
+		void		SetInputRegister(uint16_t address, uint16_t value);
 
 		T_Options	GetDefaultFormatOptions();
 		std::string MakeFormattedString					(const char* cPrefix, const uint16_t value, const T_Options* options = 0);

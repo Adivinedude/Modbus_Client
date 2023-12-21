@@ -54,13 +54,13 @@ static char wordchar(void)
 #endif
 
 
-static char *padstr(const std::string& s, unsigned int length)
+static char *padstr(const char* s, unsigned int length)
 {
     static char buf[MAXSTRLEN];
     char fmt[10];
 
-    snprintf(fmt, sizeof(fmt), s.size() > length ? "%%.%ds" : "%%-%ds", length);
-    snprintf(buf, sizeof(buf), fmt, s.c_str());
+    snprintf(fmt, sizeof(fmt), strlen(s) > length ? "%%.%ds" : "%%-%ds", length);
+    snprintf(buf, sizeof(buf), fmt, s);
 
     return buf;
 }
@@ -172,12 +172,15 @@ void idle(void)
 /// <param name="columns">place to store the column count</param>
 void menudim(menu *mp, int *lines, int *columns)
 {
-    int n, l, mmax = 0;
+    std::string::size_type n, l;
+    std::string::size_type mmax = 0;
     if(!mp) 
         return;
-    for (n = 0; mp->func; n++, mp++)
-        if ((l = mp->name.size()) > mmax) mmax = l;
-
+    for (n = 0; mp->pName; n++, mp++){
+        const char* p = mp->pName->GetValue();
+        if ( (l = strlen(p)) > mmax)
+            mmax = l;
+    }
     *lines = n;
     *columns = mmax + 2;
 }
@@ -192,10 +195,10 @@ static void getmenupos(int *y, int *x)
     *y = nexty;
     *x = nextx;
 }
-static int hotkey(const std::string &str)
+static int hotkey(const char* str)
 {
-    int c0 = str.size()?str.at(0):0;    /* if no upper case found, return first char */
-    const char* s = str.c_str();
+    int c0 = strlen(str) ? *str : 0;    /* if no upper case found, return first char */
+    const char* s = str;
     for (; *s; s++)
         if (isupper((unsigned char)*s))
             break;
@@ -203,25 +206,37 @@ static int hotkey(const std::string &str)
 }
 void repaintmenu(menu_state *ms)
 {
-    if (!ms->pWindow || !ms->pMenu)
+    if (!ms->pWindow)
         return;
-    int i;
-    menu *p = ms->pMenu;
+    if(ms->pMenu){
+        int i;
 
-    for (i = 0; p->func; i++, p++) {
-        mvwaddstr(ms->pWindow, i + 1, 2, p->name.c_str());
+        menu *p = ms->pMenu;
+        for (i = 0; p->pName; i++, p++) {
+            if ((ms->alwaysSelected || ms->isSelected) 
+                && (p->value != MENU_DISABLE)
+                && (ms->cur == i)) {
+                    setcolor(ms->pWindow, SUBMENUREVCOLOR);
+            }
+            mvwaddstr(ms->pWindow, i + 1, 2, p->pName->GetValue());
+            if ((ms->alwaysSelected || ms->isSelected)
+                && (p->value != MENU_DISABLE)
+                && (ms->cur == i)) {
+                setcolor(ms->pWindow, SUBMENUCOLOR);
+            }
+        }
     }
-
     touchwin(ms->pWindow);
     wrefresh(ms->pWindow);
 }
+
 static void repaintmainmenu(int width, menu_state *ms)
 {
     int i;
     menu *p = ms->pMenu;
 
     for (i = 0; p->func; i++, p++)
-        mvwaddstr(ms->pWindow, 0, i * width, prepad(padstr(p->name, width - 1), 1));
+        mvwaddstr(ms->pWindow, 0, i * width, prepad(padstr(p->pName->GetValue(), width - 1), 1));
 
     touchwin(ms->pWindow);
     wrefresh(ms->pWindow);
@@ -270,14 +285,14 @@ void mainmenu( menu_state* ms)
             if (old != -1)
             {
                 mvwaddstr(wmain, 0, old * barlen,
-                          prepad(padstr(ms->pMenu[old].name, barlen - 1), 1));
+                          prepad(padstr(ms->pMenu[old].pName->GetValue(), barlen - 1), 1));
                 statusmsg(ms->pMenu[ms->cur].desc);
             }
             //else
             //    mainhelp();
             setcolor(wmain, MAINMENUREVCOLOR);
             mvwaddstr(wmain, 0, ms->cur * barlen,
-                      prepad(padstr(ms->pMenu[ms->cur].name, barlen - 1), 1));
+                      prepad(padstr(ms->pMenu[ms->cur].pName->GetValue(), barlen - 1), 1));
             setcolor(wmain, MAINMENUCOLOR);
             old = ms->cur;
             wrefresh(wmain);
@@ -289,7 +304,7 @@ void mainmenu( menu_state* ms)
             quit = 1; //exit menu
             //restore non selected menu colors
             mvwaddstr(wmain, 0, old * barlen,
-                prepad(padstr(ms->pMenu[old].name, barlen - 1), 1));
+                prepad(padstr(ms->pMenu[old].pName->GetValue(), barlen - 1), 1));
             wrefresh(wmain);
             break; 
 
@@ -349,9 +364,9 @@ void mainmenu( menu_state* ms)
             {
                 ms->cur = (ms->cur + 1) % ms->nitems;   //iterate through items
 
-            } while ((ms->cur != cur0) && (hotkey(ms->pMenu[ms->cur].name) != toupper(c))); //check for end condition or hotkey
+            } while ((ms->cur != cur0) && (hotkey(ms->pMenu[ms->cur].pName->GetValue()) != toupper(c))); //check for end condition or hotkey
 
-            if (hotkey(ms->pMenu[ms->cur].name) == toupper(c)) //if hotkey was found
+            if (hotkey(ms->pMenu[ms->cur].pName->GetValue()) == toupper(c)) //if hotkey was found
                 key = '\n';
         }
 
@@ -400,6 +415,16 @@ WINDOW* bodywin(void)
 {
     return wbody;
 }
+std::list<menu_state*> BodyRedrawStack;
+void repaintBody(void)
+{
+    for (auto it = BodyRedrawStack.begin(); it != BodyRedrawStack.end(); it++) {
+        if( (*it)->alwaysDrawBox )
+            colorbox( (*it)->pWindow, SUBMENUCOLOR, 1);     // set color and outline
+        repaintmenu(*it);
+    }
+}
+
 void rmerror(void)
 {
     rmline(wstat, 0);
@@ -410,7 +435,7 @@ void rmstatus(void)
 }
 void titlemsg(const std::string &msg)
 {
-    mvwaddstr(wtitl, 0, 2, padstr(msg, bw - 3));
+    mvwaddstr(wtitl, 0, 2, padstr(msg.c_str(), bw - 3));
     wrefresh(wtitl);
 }
 void bodymsg(const std::string &msg)
@@ -422,15 +447,15 @@ void errormsg(const std::string &msg)
 {
     if (!msg.size())
         return;
-    beep();
-    mvwaddstr(wstat, 0, 2, padstr(msg, bw - 3));
+    //beep();
+    mvwaddstr(wstat, 0, 2, padstr(msg.c_str(), bw - 3));
     wrefresh(wstat);
 }
 void statusmsg(const std::string &msg)
 {
     if (!msg.size())
         return;
-    mvwaddstr(wstat, 1, 2, padstr(msg, bw - 3));
+    mvwaddstr(wstat, 1, 2, padstr(msg.c_str(), bw - 3));
     wrefresh(wstat);
 }
 bool keypressed(WINDOW* win)
@@ -473,14 +498,15 @@ void domenu(menu_state *ms)
     int y, x;
     bool stop = FALSE;
     curs_set(0);
-    getmenupos(&y, &x); // get menu position
+    getmenupos(&y, &x);     // get menu position
     exSetupMenu(ms, y, x);
-    exMenu(ms, y, x);   // run menu at this position
+    BodyRedrawStack.push_back(ms);
+    exMenu(ms, y, x);       // run menu at this position
+    BodyRedrawStack.pop_back();
     exDone(ms);             // clean up overwriten text
     exClean(ms);            // free up resources
     touchwin(wbody);
     wrefresh(wbody);
-    
 }
 WINDOW* exSetupMenu(menu_state* ms, int y, int x) {
     int barlen, mheight, mw;
@@ -516,6 +542,7 @@ void exMenu(menu_state* ms, int y, int x) {
         }
     }
     quit = false;
+    ms->isSelected = true;
     while (!stop && !quit)
     {
         cur0 = ms->cur; //store current selection
@@ -524,7 +551,7 @@ void exMenu(menu_state* ms, int y, int x) {
             if (old != -1) {    //if NOT the (first iteration or returning from OnClick event)
                 //restore the previous selections text and color
                 mvwaddstr(ms->pWindow, old + 1, 1,
-                    prepad(padstr(ms->pMenu[old].name, barlen - 1), 1));
+                    prepad(padstr(ms->pMenu[old].pName->GetValue(), barlen - 1), 1));
             }
             //call OnSelect callback
             if (ms->pMenu[ms->cur].isSelected)
@@ -532,7 +559,7 @@ void exMenu(menu_state* ms, int y, int x) {
             //change color of new selection.
             setcolor(ms->pWindow, SUBMENUREVCOLOR);
             mvwaddstr(ms->pWindow, ms->cur + 1, 1,
-                prepad(padstr(ms->pMenu[ms->cur].name, barlen - 1), 1));
+                prepad(padstr(ms->pMenu[ms->cur].pName->GetValue(), barlen - 1), 1));
 
             setcolor(ms->pWindow, SUBMENUCOLOR);
             statusmsg(ms->pMenu[ms->cur].desc); //display menu item description
@@ -578,7 +605,7 @@ void exMenu(menu_state* ms, int y, int x) {
                 //restore the previous selections text and color
                 setcolor(ms->pWindow, SUBMENUCOLOR);
                 mvwaddstr(ms->pWindow, cur0 + 1, 1,
-                    prepad(padstr(ms->pMenu[cur0].name, barlen - 1), 1));
+                    prepad(padstr(ms->pMenu[cur0].pName->GetValue(), barlen - 1), 1));
                 //touchwin(wmenu);
                 wrefresh(ms->pWindow);
             }
@@ -609,21 +636,22 @@ void exMenu(menu_state* ms, int y, int x) {
 
         default:
             //check for hotkey presses
-            key = ERR;
-            if (!ms->hotkey)
+            if (!ms->hotkey) {
+                key = ERR;
                 break;
+            }
             cur0 = ms->cur;
             do
             {
                 ms->cur = (ms->cur + 1) % ms->nitems;
-
             } while ((ms->cur != cur0) &&
-                (hotkey(ms->pMenu[ms->cur].name) != toupper((int)key)));
+                (hotkey(ms->pMenu[ms->cur].pName->GetValue()) != toupper((int)key)));
 
-            key = (hotkey(ms->pMenu[ms->cur].name) == toupper((int)key)) ? '\n' : ERR;
+            key = (hotkey(ms->pMenu[ms->cur].pName->GetValue()) == toupper((int)key)) ? '\n' : ERR;
         }
 
     }
+    ms->isSelected = false;
 }
 
 void exDone(menu_state* ms) {
@@ -649,6 +677,7 @@ void setupmenu(menu_state* ms, const std::string &title) {
 
     wstat = subwin(stdscr, sh, bw, th + mh + bh, 0);
     ms->pWindow = wmain;
+    ms->hotkey = true; // Use hotkeys
 
     colorbox(wtitl, TITLECOLOR, 0);
     colorbox(wmain, MAINMENUCOLOR, 0);
@@ -879,7 +908,8 @@ int getstrings(const char *desc[], char *buf[], int field)
     //Draw a box centered of body window, big enough to hold the descritpions and fields
     winput = mvwinputbox(wbody, (maxy - nlines) / 2, (maxx - ncols) / 2,
         nlines, ncols);
-
+    menu_state input_state(winput);
+    BodyRedrawStack.push_back(&input_state);
     //make a line break for spacers
     char* line_string = (char*)malloc(mmax + 1);
     memset(line_string, '-', mmax);
@@ -913,6 +943,7 @@ int getstrings(const char *desc[], char *buf[], int field)
         //pass field editing to handler. Unprocessed keys are returned to us for handling.
         switch (c = mvweditstr(winput, i+1, mmax+3, buf[i], field))
         {
+        case ERR:
         case KEY_ESC:
             stop = TRUE;
             break;
@@ -935,6 +966,7 @@ int getstrings(const char *desc[], char *buf[], int field)
         }
     }
 
+    BodyRedrawStack.pop_back();
     delwin(winput);
     touchwin(wbody);
     wmove(wbody, oldy, oldx);
