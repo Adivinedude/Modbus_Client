@@ -16,6 +16,7 @@
 
 modbus_t* volatile modbus = 0;
 volatile bool poll_modbus_thread_run;
+volatile sConnection_Options Current_Connection_Settings = { 9600, 'N', 8, 1 };
 
 std::thread myThread;
 std::mutex  device_list_lock;
@@ -28,7 +29,11 @@ void scan_device_for_registers();
 
 void connect_poller(const char* name) {
 
-    modbus = modbus_new_rtu(name, 9600, 'N', 8, 1);
+    modbus = modbus_new_rtu(name,
+                            Current_Connection_Settings.baudrate,
+                            Current_Connection_Settings.parity,
+                            Current_Connection_Settings.data_bit,
+                            Current_Connection_Settings.stop_bit);
     //modbus_set_debug(modbus, false);
     uint32_t sec, usec;
     int status = modbus_get_response_timeout(modbus, &sec, &usec);
@@ -61,7 +66,8 @@ void poll_modbus_thread() {
                 break;
             case 1:
                 scan_network();
-                poller_state = 0;
+                if( poller_state == 1)
+                    poller_state = 0;
                 break;
             case 2:
                 scan_device_for_registers();
@@ -105,6 +111,7 @@ void modbus_poller() {
             it->last_update_time = current_time;
             modbus_t* mb = modbus;
             modbus_address_lock.lock();
+            modbus_flush(modbus);
             if (modbus_set_slave(modbus, c_address = it->GetAddress()) == -1) {
                 std::cerr <<  "Invalid slave ID" << std::endl;
                 modbus_free(modbus);
@@ -300,8 +307,9 @@ void scan_network(){
         return;
     }
     status = modbus_set_response_timeout(modbus, 0, 100000);
-    for (int address = 0; address <= MAXIUM_DEVICE_ADDRESS && poller_state == 2; address++) {
+    for (int address = 0; address <= MAXIUM_DEVICE_ADDRESS && poller_state == 1; address++) {
         modbus_address_lock.lock();
+        modbus_flush(modbus);
         std::cerr << "Pinging <" << address << ">" <<std::endl;
         if (modbus_set_slave(modbus, address) == -1) {
             std::cerr << "Invalid slave ID" << std::endl;
