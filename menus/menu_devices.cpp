@@ -51,7 +51,7 @@ bool ProcessData_AddDevice(char** fieldbuf, size_t fieldsize) {
             newdevice.configureInput_register  (fieldbuf[IR_Address],      fieldbuf[IR_Count]);
 
             uint16_t addr = newdevice.GetAddress();
-            _gDevice_List.push_back(newdevice);    //2023/12/24 bug found. this should be move.
+            _gDevice_List.push_back(std::move(newdevice));
             _gDevice_List.sort(); 
             statusmsg("Device added");
             BuildDeviceList();//recreate the menu object for displaying device
