@@ -9,6 +9,8 @@
 	public:										    
 		cModbus_Device();
 		~cModbus_Device();
+		cModbus_Device(const cModbus_Device& r);
+		cModbus_Device(cModbus_Device&& r);
 
 		std::string template_name;		//just throwing this in here ToDo: do it proper with divised class.
 		uint32_t	template_id;
@@ -21,7 +23,7 @@
 		*/
 		void force_update(){/*update_coils = 1; update_discrete_input = 1; update_holding_register = 1; update_input_registers = 1; */};
 
-		bool		IsConditionalAddress(uint32_t address);
+		bool IsConditionalAddress(uint32_t address);
 		//Setup functions
 		void configureCoil				(const char* starting_address, const char* size);		//Takes strings as inputs: assocoates memory
 		void configureCoil				(size_t starting_address, size_t size);					//Takes intgers as inputs: assocoates memory
