@@ -7,6 +7,7 @@
 #include <Windows.h>
 #include <thread>
 #include <mutex>
+#include <chrono>
 #include "./menus/menu_connections.h"   //disconnect function
 #include "./menus/menu_devices.h"       //add device function
 
@@ -25,8 +26,7 @@ volatile uint8_t poller_state = 0;
 
 void scan_network();
 void modbus_poller();
-void scan_device_for_registers();
-
+void scan_for_registers();
 void connect_poller(const char* name) {
 
     modbus = modbus_new_rtu(name,
@@ -70,7 +70,7 @@ void poll_modbus_thread() {
                     poller_state = 0;
                 break;
             case 2:
-                scan_device_for_registers();
+                scan_for_registers();
                 poller_state = 0;
                 break;
         }
@@ -214,10 +214,12 @@ void modbus_poller() {
     }
 }
 void scan_device_for_registers(const uint16_t) {
-    poller_state = 2;
+    //poller_state = 2;
     key = KEY_ESC;
+    std::thread scanner(scan_for_registers);
+    scanner.detach();
 }
-void scan_device_for_registers() {
+void scan_for_registers() {
  
     uint32_t    coil_start, coil_stop,
                 di_start,   di_stop,
@@ -306,8 +308,9 @@ void scan_network(){
         std::cerr << "Not connected. Can not scan" << std::endl;
         return;
     }
+    //poller_state = -1;
     status = modbus_set_response_timeout(modbus, 0, 100000);
-    for (int address = 0; address <= MAXIUM_DEVICE_ADDRESS && poller_state == 1; address++) {
+    for (int address = 0; (address <= MAXIUM_DEVICE_ADDRESS) && (poller_state == 1); address++) {
         modbus_address_lock.lock();
         modbus_flush(modbus);
         std::cerr << "Pinging <" << address << ">" <<std::endl;
@@ -320,9 +323,12 @@ void scan_network(){
         }
         status = modbus_read_bits(modbus, 1, 1, &bit);
         modbus_address_lock.unlock();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        int e;
         switch(status){
             case -1:
-                if (!errno)
+                if (!(e = errno))
                     break;  //check errno for timeout, device not online
                 //device returned an error code, device is online. log it.
 
@@ -333,7 +339,7 @@ void scan_network(){
                 a.SetName( std::to_string(address).c_str() );
                 auto found = std::find(_gDevice_List.begin(), _gDevice_List.end(), a);
                 if(found == _gDevice_List.end() ){
-                    _gDevice_List.push_back(a);
+                    _gDevice_List.push_back(std::move(a));
                     BuildDeviceList();
                 }
             break;

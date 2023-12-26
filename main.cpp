@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 {   
 lock_poller();
 #ifdef _DEBUG
- /*
+    /*
     //Got tired of typing this in every time.
     try{
         _gDevice_List.push_back(cModbus_Device());
@@ -64,19 +64,20 @@ lock_poller();
         d->configureCoil(0, 16);
         d->configureDiscrete_input(0, 8);
         d->configureHolding_register(0, 16);
-        d->configureInput_register(0,22); 
+        d->configureInput_register(0,23); 
         //d->update_coils = 1;
         //d->update_discrete_input = 1;
         //d->update_holding_register = 1;
         //d->update_input_registers = 1;
         _gManager.LoadFile("PCM_Modbus_Template.txt");
+        _gManager.LoadFile("PCM_Modbus_Template.txt");   
     }
     catch (const std::exception& ex) {
         std::cerr << ex.what();
         system("pause");
         return 0;
     }
-*/
+    */
 #endif
 
     //set callback functions

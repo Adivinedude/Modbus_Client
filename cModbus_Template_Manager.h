@@ -8,6 +8,8 @@
     #include "cModbus_Device.h"
     #include "cModbus_Template_types.h"
 
+    #define template_function_symbols "#@!"
+
     // this template requires the class to contain a member of type <COMPARE_TYPE> named <COMPARE_MEMBER>
     template <class SET_OBJECT, class COMPARE_TYPE, COMPARE_TYPE SET_OBJECT::*MEMBER> class SIMPLE_SET_COMPARATOR
     {

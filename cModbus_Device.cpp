@@ -50,76 +50,71 @@ cModbus_Device::~cModbus_Device() {
 	clear_holding_registers();
 	clear_input_registers();
 }
-
-cModbus_Device::cModbus_Device(const cModbus_Device& r) 
-:	name(std::string()),
-	ModbusAddress(0xFFFF),
-	clean_coils(0),
-	clean_discrete_input(0),
-	clean_holding_registers(0),
-	clean_input_registers(0),
-	pCoils(0),
-	pDiscrete_input(0),
-	pHolding_registers(0),
-	pInput_registers(0),
-	nCoils(0),
-	nDiscrete_input(0),
-	nHolding_registers(0),
-	nInput_registers(0),
-	start_address_coils(0),
-	start_address_discrete_input(0),
-	start_address_holding_registers(0),
-	start_address_input_registers(0),
-	default_options(T_Options())
+cModbus_Device::cModbus_Device(cModbus_Device&& r)
 {
+	//minimial construction 
+	this->pCoils = 0;
+	this->pDiscrete_input = 0;
+	this->pHolding_registers = 0;
+	this->pInput_registers = 0;
+	*this = std::move(r);
+}
+cModbus_Device& cModbus_Device::operator=(cModbus_Device&& r)
+{
+	if( this != &r ){
+		this->clear_coils();
+		this->clear_discrete_inputs();
+		this->clear_holding_registers();
+		this->clear_input_registers();
+
+		template_id = r.template_id;
+		template_name = std::move(r.template_name);
+		last_update_time = r.last_update_time;
+
+		name = std::move(r.name);
+		ModbusAddress = r.ModbusAddress;
+
+		pCoils = r.pCoils;
+		nCoils = r.nCoils;
+		start_address_coils = r.start_address_coils;
+		clean_coils = r.clean_coils;
+
+		pDiscrete_input = r.pDiscrete_input;
+		nDiscrete_input = r.nDiscrete_input;
+		start_address_discrete_input = r.start_address_discrete_input;
+		clean_discrete_input = r.clean_discrete_input;
+
+		pHolding_registers = r.pHolding_registers;
+		nHolding_registers = r.nHolding_registers;
+		start_address_holding_registers = r.start_address_holding_registers;
+		clean_holding_registers = r.clean_holding_registers;
+
+		pInput_registers = r.pInput_registers;
+		nInput_registers = r.nInput_registers;
+		start_address_input_registers = r.start_address_input_registers;
+		clean_input_registers = r.clean_input_registers;
+
+		default_options = r.default_options;
+
+		r.ModbusAddress = 0xFFFF;
+		r.clean_coils = 0;
+		r.clean_discrete_input = 0;
+		r.clean_holding_registers = 0;
+		r.clean_input_registers = 0;
+
+		r.pCoils = 0;
+		r.pDiscrete_input = 0;
+		r.pHolding_registers = 0;
+		r.pInput_registers = 0;
+
+		r.nCoils = 0;
+		r.nDiscrete_input = 0;
+		r.nHolding_registers = 0;
+		r.nInput_registers = 0;
+	}
+	return *this;
 }
 
-cModbus_Device::cModbus_Device(cModbus_Device&& r)
-:	template_id(r.template_id),
-	template_name(std::move(r.template_name)),
-	last_update_time(r.last_update_time),
-
-	name(std::move(r.name)),
-	ModbusAddress(r.ModbusAddress),
-
-	pCoils(r.pCoils),
-	nCoils(r.nCoils),
-	start_address_coils(r.start_address_coils),
-	clean_coils(r.clean_coils),
-
-	pDiscrete_input(r.pDiscrete_input),
-	nDiscrete_input(r.nDiscrete_input),
-	start_address_discrete_input(r.start_address_discrete_input),
-	clean_discrete_input(r.clean_discrete_input),
-
-	pHolding_registers(r.pHolding_registers),
- 	nHolding_registers(r.nHolding_registers),
-	start_address_holding_registers(r.start_address_holding_registers),
-	clean_holding_registers(r.clean_holding_registers),
-
- 	pInput_registers(r.pInput_registers),
-	nInput_registers(r.nInput_registers),
-	start_address_input_registers(r.start_address_input_registers),
- 	clean_input_registers(r.clean_input_registers),
-
-	default_options(r.default_options)
-{
-	r.ModbusAddress = 0xFFFF;
-	r.clean_coils = 0;
-	r.clean_discrete_input = 0;
-	r.clean_holding_registers = 0;
-	r.clean_input_registers = 0;
-
-	r.pCoils = 0;
-	r.pDiscrete_input = 0;
-	r.pHolding_registers = 0;
-	r.pInput_registers = 0;
-
-	r.nCoils = 0;
-	r.nDiscrete_input = 0;
-	r.nHolding_registers = 0;
-	r.nInput_registers = 0;
-};
 
 
 bool cModbus_Device::IsConditionalAddress(uint32_t address)

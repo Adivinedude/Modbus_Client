@@ -138,7 +138,7 @@ void paintDeviceDetails() {
         menudim(ms->pMenu, &y, &x);
         y += 2; x += 1;
         //do{
-           ms->pWindow = derwin(pDeviceDetailsWindow, y, x, 0, new_x);
+           ms->pWindow = derwin(pDeviceDetailsWindow, (y > maxy)?maxy:y, x, 0, new_x);
         //    y--;
         //}while(!pDetailWindows[i]);
         new_x += x; 

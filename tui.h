@@ -69,10 +69,12 @@
         std::string content;
         simple_menu_text();
     public:
-        simple_menu_text(const char* s): content(std::string(s)){};
+        simple_menu_text(const char* s): content(s){};
         simple_menu_text(std::string s): content(s){};
          ~simple_menu_text(){};
-        virtual const char* GetValue(){return content.c_str(); };
+        virtual const char* GetValue(){
+            return content.c_str(); 
+        };
     };
 
     typedef struct menu
@@ -103,6 +105,7 @@
         // move constructor 
         menu(menu&& m) noexcept
         {
+            menu::menu();
             *this = std::move(m);
         }
         // move assignment operator

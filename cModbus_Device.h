@@ -6,11 +6,12 @@
 
 	class cModbus_Device
 	{
+		cModbus_Device(const cModbus_Device&){}; //do not copy me!!! many bugs when this happens
 	public:										    
 		cModbus_Device();
 		~cModbus_Device();
-		cModbus_Device(const cModbus_Device& r);
 		cModbus_Device(cModbus_Device&& r);
+		cModbus_Device& operator=(cModbus_Device&& r);
 
 		std::string template_name;		//just throwing this in here ToDo: do it proper with divised class.
 		uint32_t	template_id;
