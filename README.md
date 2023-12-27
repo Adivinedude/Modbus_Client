@@ -1,6 +1,6 @@
 This is a demo program for PCM_Modbus arduino based controller
 
-This program uses open source code and is based on the tui.c example from PDCurses library.<br>
+This program uses open source code and is based on the tui.c example from PDCurses library.<br> and the libmodbus library.
 Original authors credits are still contained with in tui.h, tui.cpp.<br>
 Many features have been added to this library, but it is fundimently the same menu based program.<Br>
 My thanks to the author.<br>
