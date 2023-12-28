@@ -22,6 +22,7 @@ menu_state sDetailDisplay[detail_size];
 std::list<cModbus_Device>::iterator current_device;
 
 void GetTemplateFilename(uint16_t);
+void ConfigureDevice(uint16_t);
 
 #define edit_in_place(detail, value, field_length, GetStartAddress, SetValue, GetFormattedString)   \
                       edit_in_placeEX(&sDetailDisplay[detail], value, DEFAULT_FIELD_LENGTH, detail, \
@@ -44,8 +45,6 @@ void OnClickDevice(const uint16_t value) {
 
 }
 void BuildDeviceList() {
-    size_t s;
-
     // clear previous menu
     if (sDetailList.pMenu)
         delete[] sDetailList.pMenu;
@@ -54,6 +53,7 @@ void BuildDeviceList() {
         delwin(sDetailList.pWindow);
 
     //make new menu for the device list
+    size_t s;
     if (s = _gDevice_List.size()) {
         sDetailList.pMenu = new menu[s + 2];
     }
@@ -127,7 +127,6 @@ void paintDeviceDetails() {
         pDeviceDetailsWindow = derwin(bodywin(), maxy, maxx, 0, getmaxx(sDetailList.pWindow));
     }
     //clear the drawing board
-
     werase(pDeviceDetailsWindow);
     //build the subwindows for the detailed view
     int new_x = 0;
@@ -137,10 +136,7 @@ void paintDeviceDetails() {
         //get the largest dementions for the menu items.
         menudim(ms->pMenu, &y, &x);
         y += 2; x += 1;
-        //do{
-           ms->pWindow = derwin(pDeviceDetailsWindow, (y > maxy)?maxy:y, x, 0, new_x);
-        //    y--;
-        //}while(!pDetailWindows[i]);
+        ms->pWindow = derwin(pDeviceDetailsWindow, (y > maxy)?maxy:y, x, 0, new_x);
         new_x += x; 
         repaintmenu(ms);
     }
@@ -158,8 +154,6 @@ void paintDeviceDetails() {
 /// <param name="GetFOrmattedString">Class Method to get output string</param>
 /// <param name="text_vector">Pointer to the text dump for the menu receiving input</param>
 /// <param name="menu_array">Pointer to the menu receiving input.</param>
-bool rebuild_details = false;
-
 void edit_in_placeEX(menu_state* ms, uint16_t menu_item, int field_length, int register_type,
     uint16_t    (cModbus_Device::* GetStartAddress)    (void),
     void        (cModbus_Device::* SetValue)           (uint16_t, const char*),
@@ -246,11 +240,8 @@ void setaddress(uint16_t value) {
     key = KEY_ESC;
 
 }
-void senddata(uint16_t value) {
-    current_device->last_update_time = 0;
-}
 void scanDevice(uint16_t value) { 
-    scan_device_for_registers(value);
+    start_ScanDevice();
     buildDeviceDetail(current_device->GetAddress());
 }
 void setcoil(uint16_t value) {
@@ -267,16 +258,21 @@ void setHR(uint16_t value) {
 }
 
 class menu_item_name : public menu_text {
-    public: const char* GetValue(){ return current_device->GetName(); }
+    public: const char* GetValue(){ 
+        return current_device->GetName(); 
+    }
 };
 class menu_item_address : public menu_text {
     std::string content;
-    public: const char* GetValue(){ content = current_device->GetFormattedString_Address(0); return content.c_str(); };
+    public: const char* GetValue(){ 
+        content = current_device->GetFormattedString_Address(0); 
+        return content.c_str(); 
+    };
 };
 class mibc : public menu_text { //Menu_Item_Base_Class is just to many keystrokes. 'mibc' is easier to type.
     protected:
         std::string content;
-        uint16_t address;
+        uint16_t    address;
     public: mibc(uint16_t a):address(a){};
             virtual ~mibc(){};
 };
@@ -322,11 +318,12 @@ public:
 };
 
 void buildDeviceDetail(uint16_t current_selection) {
-    cleanDeviceDetailsMenus();
     //find the device to display, exit if we do not find it
     current_device = std::find(_gDevice_List.begin(), _gDevice_List.end(), current_selection);
     if (current_device == _gDevice_List.end())
         return;
+
+    cleanDeviceDetailsMenus();
     size_t size;
     uint16_t item_number;
     current_device->force_update();
@@ -345,7 +342,7 @@ void buildDeviceDetail(uint16_t current_selection) {
     //address
     myname[item_number++] = { new menu_item_address, setaddress, "", item_number};
     //the rest of it
-    myname[item_number++] = { "Send/Recv All Data", senddata, "", item_number};
+    myname[item_number++] = { "Configure Device", ConfigureDevice, "", item_number};
     myname[item_number++] = { "Scan Device", scanDevice, "Find all registers offered by device", item_number };
     myname[item_number++] = { "Select Template", GetTemplateFilename, "", current_selection};
     #undef myname
@@ -417,7 +414,7 @@ void buildDeviceDetail(uint16_t current_selection) {
         myname[item_number++] = { new menu_item_input_register(a), DoNothing, "", item_number};
     }
     #undef myname
-    paintDeviceDetails();
+     paintDeviceDetails();
 }
 void handleDeviceDetail() {
     int selection = 0, c = ERR, old = -1;
@@ -465,4 +462,43 @@ bool GetTemplateFileName_callback(char** fieldbuf, size_t fieldsize) {
 void GetTemplateFilename(uint16_t) {
     const char* fieldname[] = { "Template File Name", 0 };
     TextInputBox_Fields(fieldname, DEFAULT_FIELD_LENGTH, GetTemplateFileName_callback, 0);
+}
+
+bool ConfigureDevice_callback(char** fieldbuf, size_t fieldsize) {
+    //ToDo finish this function.
+    try {
+        //error check input before configureing device
+            uint32_t temp_object; //removes compiler warning
+            for(char** p = fieldbuf; *p; p++)
+                temp_object = std::stoul( *p, nullptr, 10);
+        current_device->configureCoil(fieldbuf[0], fieldbuf[1]);
+        current_device->configureDiscrete_input(fieldbuf[2], fieldbuf[3]);
+        current_device->configureHolding_register(fieldbuf[4], fieldbuf[5]);
+        current_device->configureInput_register(fieldbuf[6], fieldbuf[7]);
+        buildDeviceDetail(current_device->GetAddress());
+    }catch (std::invalid_argument& ex) {
+        errormsg(ex.what());
+        return true;
+    }
+    return false;
+}
+void ConfigureDevice(uint16_t value) {
+
+    const char* fieldname[] = { "1st Coil Address:", "Coil Count:",
+                                "1st DI Address:",   "DI Count:",
+                                "1st HR Address:",   "HR Count:",
+                                "1st IR Address:",   "IR Count:", 0 };
+    #define ts( a ) std::to_string(current_device->a)
+    std::string text_dump[] = { ts(GetStartCoil()),             ts(GetCoilN()), 
+                                ts(GetStartDiscreteInput()),    ts(GetDiscreteInputN()), 
+                                ts(GetStartHoldingRegister()),  ts(GetHoldingRegisterN()),
+                                ts(GetStartInputRegister()),    ts(GetInputRegisterN())};
+    #undef ts
+    int i = 0;
+    const char* fielddefault[] = { text_dump[i++].c_str(), text_dump[i++].c_str(),
+                                   text_dump[i++].c_str(), text_dump[i++].c_str(),
+                                   text_dump[i++].c_str(), text_dump[i++].c_str(),
+                                   text_dump[i++].c_str(), text_dump[i++].c_str(), 0 };
+
+    TextInputBox_Fields(fieldname, DEFAULT_FIELD_LENGTH, ConfigureDevice_callback, fielddefault);
 }

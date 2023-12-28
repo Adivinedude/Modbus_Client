@@ -52,10 +52,10 @@ struct sNameDatabaseItem
             pValue = std::move(r.pValue);
             conditional_address = r.conditional_address;
             conditional_value = r.conditional_value;
-            r.address = TEMPLATE_INVALID_ADDRESS;
+            //r.address = TEMPLATE_INVALID_ADDRESS;
             r.pValue = 0;
-            r.conditional_address = TEMPLATE_INVALID_ADDRESS;
-            r.conditional_value = 0;
+            //r.conditional_address = TEMPLATE_INVALID_ADDRESS;
+            //r.conditional_value = 0;
         }
         return *this;
     }

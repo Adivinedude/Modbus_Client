@@ -25,6 +25,8 @@
 #include "fstream_redirect.h"       // Recovers std::cerr and stderr streams into one stringstream object.
 #include "cModbus_Template_Manager.h"
 #include "Modbus_Poller.h"
+#include <chrono>
+#include <thread>
 
 //Not very portable but easier than adding project settings 
 //as visual studio is not as make file firendly as other toolchains
@@ -47,13 +49,17 @@ void CleanupOnExit();// Function to execute at program termination
 bool restart = 0;
 //WINDOW *pDeviceListWindow = 0, *pDeviceDetailsWindow = 0;
 
-
+void testfunction() {
+    int a = 0;
+    a++;
+    a *= 2;
+    return;
+}
 
 int main(int argc, char **argv)
-{   
-lock_poller();
+{  
 #ifdef _DEBUG
-    /*
+    
     //Got tired of typing this in every time.
     try{
         _gDevice_List.push_back(cModbus_Device());
@@ -77,8 +83,9 @@ lock_poller();
         system("pause");
         return 0;
     }
-    */
+    
 #endif
+    lock_device_list();
 
     //set callback functions
     _loop = &loop;
@@ -99,6 +106,7 @@ lock_poller();
     }
     //setup body
     BuildDeviceList();
+    buildDeviceDetail(0);
 
     int selection = 0;
     //main loop
@@ -160,7 +168,7 @@ lock_poller();
 void CleanupOnExit(){
 //    beep();
     stop_poller();
-    unlock_poller();
+    unlock_device_list();
     if (sDetailList.pMenu){
         delete[] sDetailList.pMenu; // clear previous menu
         sDetailList.pMenu = 0;
@@ -183,9 +191,9 @@ void CleanupOnExit(){
 time_t redraw_timer = 0;
 void loop() {
     std::string rt;
-    unlock_poller();
+    unlock_device_list();
     //modbus_poller();
-    Sleep(1);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     //pipe stderr and std::cerr to the error readout
     _gError_redirect.update();
     if ( (rt = _gError_buffer.str()).size() ) {
@@ -193,10 +201,11 @@ void loop() {
         _gError_buffer.str(std::string());
         _gError_buffer.clear();
     }
-    lock_poller();
+    lock_device_list();
     //redraw details if the device has updated
     if( redraw_timer+1 <= current_time){
-        repaintBody();
+        if(current_device != _gDevice_List.end())   //prevents exception when current_device is not valid
+            repaintBody();
         redraw_timer = current_time;
     }
 }

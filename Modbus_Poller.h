@@ -8,17 +8,31 @@ struct sConnection_Options {
     int data_bit; 
     int stop_bit;
 };
+enum connection_options_enum {
+    baud = 0,
+    parity,
+    data_bit,
+    stop_bit
+};
 
 extern modbus_t* volatile modbus;
 extern volatile sConnection_Options Current_Connection_Settings;
+extern volatile bool thread_state_Poller;
+extern volatile bool thread_state_ScanNetwork;
+extern volatile bool thread_state_ScanDevice;
 
-void connect_poller(const char* name);
-void lock_poller();
-void unlock_poller();
+void connect_modbus(const char* name);
+void disconnect_modbus();
+
 void start_poller();
 void stop_poller();
-void modbus_poller();
-void scan_device_for_registers(const uint16_t);
-void scan_network_for_devices(const uint16_t);
 
+void start_ScanDevice();
+void stop_ScanDevice();
+
+void start_ScanNetwork();
+void stop_ScanNetwork();
+
+void lock_device_list();
+void unlock_device_list();
 #endif

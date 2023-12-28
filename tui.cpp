@@ -419,7 +419,7 @@ std::list<menu_state*> BodyRedrawStack;
 void repaintBody(void)
 {
     for (auto it = BodyRedrawStack.begin(); it != BodyRedrawStack.end(); it++) {
-        if( (*it)->alwaysDrawBox )
+        if( (*it)->alwaysDrawBox || (*it)->isSelected )
             colorbox( (*it)->pWindow, SUBMENUCOLOR, 1);     // set color and outline
         repaintmenu(*it);
     }
@@ -984,7 +984,8 @@ void TextInputBox_Fields(   const char** fieldname,
     for (; fieldname[num_of_fields] != 0; num_of_fields++) {}
 
     //associate memory for the array of user input buffers
-    char** fieldbuf = new char* [num_of_fields];
+    char** fieldbuf = new char* [num_of_fields+1];
+    fieldbuf[num_of_fields] = 0;
     //associate memory for the user input buffer
     for (size_t i = 0; i < num_of_fields; i++) {
         fieldbuf[i] = (char*)calloc(1, fieldsize + 1);
