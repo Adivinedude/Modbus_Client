@@ -127,11 +127,16 @@ void stop_ScanNetwork() {
     }
 }
 
+volatile bool device_list_is_locked = false;
 void lock_device_list() {
     device_list_lock.lock();
+    device_list_is_locked = true;
 }
 void unlock_device_list() {
-    device_list_lock.unlock();
+    if(device_list_is_locked){
+        device_list_is_locked = false;
+        device_list_lock.unlock();
+    }
 }
 void modbus_poller() {
 if(thread_state_Poller)

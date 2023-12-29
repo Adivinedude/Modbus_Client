@@ -27,6 +27,7 @@
 #include "Modbus_Poller.h"
 #include <chrono>
 #include <thread>
+#include <signal.h>
 
 //Not very portable but easier than adding project settings 
 //as visual studio is not as make file firendly as other toolchains
@@ -40,24 +41,93 @@ std::stringstream           _gError_buffer;         //storage for error messages
 fstream_redirect            _gError_redirect(_gError_buffer,    //Capture stderr and std::cerr messages
                                                 std::cerr, 
                                                 stderr);
+void CleanConsole() {
+    if (sDetailList.pMenu) {
+        delete[] sDetailList.pMenu; // clear previous menu
+        sDetailList.pMenu = 0;
+    }
+    cleanDeviceDetailsMenus();
+    cleanDeviceDetailsWindow();
+    if (sDetailList.pWindow) {
+        delwin(sDetailList.pWindow);
+        sDetailList.pWindow = 0;
+    }
+    if (pDeviceDetailsWindow) {
+        delwin(pDeviceDetailsWindow);
+        pDeviceDetailsWindow = 0;
+    }
+}
 
-void loop();         // Run code during idle time
-int  keyLoop(int);   // Pre-processing of key strokes
-void CleanupOnExit();// Function to execute at program termination
+void CleanupOnExit() {
+    //    beep();
+    DoExit(0);
+    //stop and delete network objects
+    disconnect_modbus();
+    //cleanup all window and menu objects
+    CleanConsole();
+    //Stop curses library
+    cleanup();
+    //release mutex of _gDeviceList
+    unlock_device_list();
+}
+
+time_t redraw_timer = 0;
+void loop() {        
+    std::string rt;
+    unlock_device_list();
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    //pipe stderr and std::cerr to the error readout
+    _gError_redirect.update();
+    if ((rt = _gError_buffer.str()).size()) {
+        errormsg(rt.c_str());
+        _gError_buffer.str(std::string());
+        _gError_buffer.clear();
+    }
+    lock_device_list();
+    //redraw details if the timer has expired
+    if (redraw_timer + 1 <= current_time) {
+        if (current_device != _gDevice_List.end())
+            repaintBody();
+        redraw_timer = current_time;
+    }
+}
+int keyLoop(int c) {
+    /*
+    std::string buf;
+    buf.append("Key Pressed: ");
+    buf.append(std::to_string(c));
+    statusmsg(buf.c_str());
+    */
+    switch (c) {
+        //use keypad enter button
+    case PADENTER:
+        c = '\n';
+        break;
+    case KEY_ESC:
+        rmerror();
+        break;
+    }
+    return c;
+}
 
 /***************************** start main menu  ***************************/
-bool restart = 0;
-//WINDOW *pDeviceListWindow = 0, *pDeviceDetailsWindow = 0;
+volatile bool restart = 0;
+std::thread mainloop;
 
-void testfunction() {
-    int a = 0;
-    a++;
-    a *= 2;
-    return;
+void SigInt_Handler(int n_signal)
+{
+    restart = 0;
+    DoExit(0);
+    if( mainloop.joinable() )
+        mainloop.join();
 }
+
+void myapp();
 
 int main(int argc, char **argv)
 {  
+    signal(SIGINT, &SigInt_Handler);
+    signal(SIGBREAK, &SigInt_Handler);
 #ifdef _DEBUG
     
     //Got tired of typing this in every time.
@@ -85,33 +155,38 @@ int main(int argc, char **argv)
     }
     
 #endif
-    lock_device_list();
-
     //set callback functions
     _loop = &loop;
     _keyLoop = &keyLoop;
 
-    //setip redraw body function
-    SetupBodyWindow();
-
     //Set application run switch to on.
     restart = 1;
+    mainloop = std::thread(myapp);
+    mainloop.join();
+    return 0;
+}
 
+void myapp() {
+    RESIZE_CONSOLE:
+    //setup redraw body function
+    SetupBodyWindow();
     //setup main menu
     setupmenu(&MainMenuState, "Modbus Client Demo - for PCM_Modbus");
-     
-    if (atexit(CleanupOnExit)) {
-        beep();
-        errormsg( "atexit() Failed" );
-    }
     //setup body
     BuildDeviceList();
     buildDeviceDetail(0);
 
     int selection = 0;
     //main loop
+    lock_device_list();
     while (restart)
     {
+        if (key == KEY_RESIZE) {
+            key = ERR;
+            CleanConsole();
+            unlock_device_list();
+            goto RESIZE_CONSOLE;
+        }
         //handle selection and key presses of main window items.
         //  Main Menu
         //  Device List
@@ -119,111 +194,48 @@ int main(int argc, char **argv)
         switch (selection) {
             //handle main menu
             //when the user exits the main menu (presses down) jump to device list
-            case 0:
-                mainmenu(&MainMenuState);
-                selection = 1;
-                break;
+        case 0:
+            mainmenu(&MainMenuState);
+            selection = 1;
+            break;
 
             //handle Device List
             //when the user left exit to main menu, 
             //when the user presses right, exit to device details
-            case 1:
-                exMenu(&sDetailList, 0, 0);
-                switch (key) {
-                    case '\n':
-                    case KEY_RIGHT:
-                        selection = 2;
-                        break;
-
-                    case KEY_ESC:
-                    case KEY_LEFT:
-                        selection = 0;
-                        break;
-                }
-                key = ERR;
+        case 1:
+            exMenu(&sDetailList, 0, 0);
+            switch (key) {
+            case '\n':
+            case KEY_RIGHT:
+                selection = 2;
                 break;
+
+            case KEY_ESC:
+            case KEY_LEFT:
+                selection = 0;
+                break;
+            }
+            key = ERR;
+            break;
             //handle device details
-            case 2:
-                if (!_gDevice_List.size()) {
-                    selection = 0;
-                    key = ERR;
-                    break;
-                }
-                handleDeviceDetail();
-                switch (key) {
-                    case KEY_ESC:
-                    case KEY_LEFT:
-                        selection--;
-                        break;
-                }
+        case 2:
+            if (!_gDevice_List.size()) {
+                selection = 0;
                 key = ERR;
                 break;
-            default:
-                selection = 0;            
+            }
+            handleDeviceDetail();
+            switch (key) {
+            case KEY_ESC:
+            case KEY_LEFT:
+                selection--;
+                break;
+            }
+            key = ERR;
+            break;
+        default:
+            selection = 0;
         }
-    } 
-    return 0;
-}
-
-void CleanupOnExit(){
-//    beep();
-    stop_poller();
-    unlock_device_list();
-    if (sDetailList.pMenu){
-        delete[] sDetailList.pMenu; // clear previous menu
-        sDetailList.pMenu = 0;
     }
-    cleanDeviceDetailsMenus();
-    cleanDeviceDetailsWindow();
-    if (sDetailList.pWindow){
-        delwin(sDetailList.pWindow);
-        sDetailList.pWindow = 0;
-    }
-    if (pDeviceDetailsWindow){
-        delwin(pDeviceDetailsWindow);
-        pDeviceDetailsWindow = 0;
-    }
-    cleanup();
-}
-
-//extern modbus_t* modbus;
-
-time_t redraw_timer = 0;
-void loop() {
-    std::string rt;
-    unlock_device_list();
-    //modbus_poller();
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    //pipe stderr and std::cerr to the error readout
-    _gError_redirect.update();
-    if ( (rt = _gError_buffer.str()).size() ) {
-        errormsg( rt.c_str() );
-        _gError_buffer.str(std::string());
-        _gError_buffer.clear();
-    }
-    lock_device_list();
-    //redraw details if the device has updated
-    if( redraw_timer+1 <= current_time){
-        if(current_device != _gDevice_List.end())   //prevents exception when current_device is not valid
-            repaintBody();
-        redraw_timer = current_time;
-    }
-}
-int keyLoop(int c) {
-    /*
-    std::string buf;
-    buf.append("Key Pressed: ");
-    buf.append(std::to_string(c));
-    statusmsg(buf.c_str());
-    */
-    switch (c) {
-        //use keypad enter button
-        case PADENTER:
-            c = '\n';
-            break;
-        case KEY_ESC:
-            rmerror();
-            break;
-    }
-    return c;
+    CleanupOnExit();
 }

@@ -50,8 +50,8 @@
 0x0F h 4 Type
 
 ################################
-#   pump 1 template for dc motor
-@ 0x03 h 0
+#   pump 1 template for dc motor (default for all unless told otherwise)
+#@ 0x03 h 0
 0x00 h 1 Cal
 0x01 h 1 Duration
 0x02 h 1 Dose
@@ -61,7 +61,7 @@
 0x02 i 1 Timer
 0x03 i 1 Dose
 0x04 i 1 TOTAL
-@
+#@
 #   pump 1 template for Servo controller
 @0x03 h 1
 0x00 h Servo 1
@@ -77,7 +77,7 @@
 
 ################################
 #   pump 2 template for dc motor
-@0x07 h 0
+#@0x07 h 0
 0x04 h 2 Cal
 0x05 h 2 Duration
 0x06 h 2 Dose
@@ -87,7 +87,7 @@
 0x07 i 2 Timer 
 0x08 i 2 Dose
 0x09 i 2 TOTAL
-@
+#@
 #   pump 2 template for servo controller
 @0x07 h 1
 0x04 h Servo 4
@@ -103,7 +103,7 @@
 
 ################################
 #    pump 3 template for dc motor
-@0x0b h 0
+#@0x0b h 0
 0x08 h 3 Cal
 0x09 h 3 Duration
 0x0A h 3 Dose
@@ -113,7 +113,7 @@
 0x0c i 3 Timer 
 0x0d i 3 Dose
 0x0e i 3 TOTAL
-@
+#@
 #    pump 3 template for servo controller
 @0x0b h 1
 0x08 h Servo 7
@@ -129,7 +129,7 @@
 
 ################################
 #    pump 4 template for dc motor
-@0x0f h 0
+#@0x0f h 0
 0x0C h 4 Cal
 0x0D h 4 Duration
 0x0E h 4 Dose
@@ -139,7 +139,7 @@
 0x11 i 4 Timer 
 0x12 i 4 Dose
 0x13 i 4 TOTAL
-@
+#@
 #    pump 4 template for servo controller
 @0x0f h 1
 0x0C h Servo 10

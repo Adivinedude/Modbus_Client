@@ -32,6 +32,7 @@ void ConfigureDevice(uint16_t);
 
 void SetupBodyWindow()
 {
+    BodyRedrawStack.clear();
     BodyRedrawStack.push_back(&sDetailList);
     for(int i = 0; i != detail_size; i++)
         BodyRedrawStack.push_back(&sDetailDisplay[i]);

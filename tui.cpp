@@ -19,7 +19,7 @@
 WINDOW* wtitl, * wmain, * wbody, * wstat; /* title, menu, body, status win*/
 int nexty, nextx;
 int key = ERR, ch = ERR;
-bool quit = FALSE;
+volatile bool quit = FALSE;
 bool incurses = FALSE;
 time_t current_time;
 
@@ -353,6 +353,10 @@ void mainmenu( menu_state* ms)
         case KEY_ESC:
             mainhelp();
             break;
+        case KEY_RESIZE:
+            quit = true;
+            key = KEY_RESIZE;
+            break;
 
         default:
             //detect hot key press
@@ -628,8 +632,10 @@ void exMenu(menu_state* ms, int y, int x) {
             stop = true;
             break;
 
+        case KEY_RESIZE:
+            stop = true;
+            break;
         case KEY_ESC:
-
             stop = TRUE;
             key = KEY_ESC;
             break;
@@ -667,10 +673,12 @@ void exClean(menu_state* ms) {
 
 void setupmenu(menu_state* ms, const std::string &title) {
     quit = FALSE;
-    initscr();
+    if (!incurses){
+        initscr();
+        initcolor();
+    }
     incurses = TRUE;
-    initcolor();
-
+    resize_term(0,0);
     wtitl = subwin(stdscr, th, bw, 0, 0);
     wmain = subwin(stdscr, mh, bw, th, 0);
     wbody = subwin(stdscr, bh, bw, th + mh, 0);
@@ -700,6 +708,7 @@ void setupmenu(menu_state* ms, const std::string &title) {
     leaveok(wtitl, TRUE);
     leaveok(wmain, TRUE);
     leaveok(wstat, TRUE);
+    getch();
 }
 void startmenu(menu_state*mp, const std::string &title)
 {
