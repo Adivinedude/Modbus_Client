@@ -1,11 +1,16 @@
-This is a demo program for PCM_Modbus arduino based controller
+# Modbus Client
+This is a demo program for my [PCM_Modbus project](https://github.com/Adivinedude/PCM_Modbus). This program can make a serial connection to a modbus network, detect connected devices and detect device points for each device. The use of a template file can translate data point addresses into meaningful lables in a per-device manner. Currently only tested on windows 11.
 
-This program uses open source code and is based on the tui.c example from PDCurses library.<br> and the libmodbus library.
-Original authors credits are still contained with in tui.h, tui.cpp.<br>
-Many features have been added to this library, but it is fundimently the same menu based program.<Br>
-My thanks to the author.<br>
+# Credits
+This program uses and is based on the `tui.c` example from [PDCurses library](https://pdcurses.org/).
+Original authors credits are still contained with in tui.h, tui.cpp.
+Many features have been added to this library. It is fundimently the same menu based program but now with more bells and whistles
 
-Current Build Instructions
+All Modbus communications are handled by the [libmodbus library.](https://libmodbus.org/)
+
+My thanks to the authors and contributers.<br>
+
+# Current Build Instructions
 ```
 For a PC Running windows 11 ( as of 2023/11 )
 
@@ -49,5 +54,5 @@ Step 8) Click "File" > "Open" > "Open Project/Solution"
 
 Step 9) Press F5 to build and launch the application
 ```
-Special Notes.
+# Special Notes.
 To run the program outside of visual studio, the modbus.dll needs to be moved into the same folder as the executable.
