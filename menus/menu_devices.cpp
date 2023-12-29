@@ -11,15 +11,23 @@
 
 void AddDevice(const uint16_t value);
 void RemoveDevice(const uint16_t value);
-
-
+void ScanNetworkWrapper(uint16_t) {
+    start_ScanNetwork();
+    key = KEY_ESC;
+}
+void StopScanNetworkWrapper(uint16_t) {
+    stop_ScanNetwork();
+    key = KEY_ESC;
+}
 void Menu_Callback_Devices(const uint16_t value)
 {
     menu SubMenuDevices[] =
     {
         { "Add",    AddDevice,          "Add Device to viewer"},
         { "Remove", RemoveDevice,       "Remove Device from viewer"},
-        { "Scan",   scan_network_for_devices,  "Scan for connected devices"},
+        { thread_state_ScanNetwork?"Stop scan":"Start scan", 
+            thread_state_ScanNetwork?StopScanNetworkWrapper:ScanNetworkWrapper,
+            "Scan for connected devices"},
         END_OF_MENU
     };
 
@@ -35,11 +43,9 @@ void Menu_Callback_Devices(const uint16_t value)
 }
 
 enum name_of_fields { Device_Name = 0, Modbus_Address, spacer, Coil_Address, Coil_Count, DI_Address, DI_Count, HR_Address, HR_Count, IR_Address, IR_Count};
-
 bool ProcessData_AddDevice(char** fieldbuf, size_t fieldsize) {
     cModbus_Device newdevice;
     try {
-
         newdevice.SetName                  (fieldbuf[Device_Name]);
         newdevice.SetAddress               (fieldbuf[Modbus_Address]);
         //see if the address or name has been taken.
@@ -66,7 +72,6 @@ bool ProcessData_AddDevice(char** fieldbuf, size_t fieldsize) {
     }
     return true;
 }
-
 void AddDevice(const uint16_t value)
 {
     const char* fieldname[] =    { "Device Name:", "ModBus Address:", 
@@ -75,28 +80,11 @@ void AddDevice(const uint16_t value)
                                    "1st DI Address:",   "DI Count:", 
                                    "1st HR Address:",   "HR Count:", 
                                    "1st IR Address:",   "IR Count:", 0};
-//#ifdef _DEBUG
-    /*
-    std::string temp, temp_two;
-    temp.append("Test ");
-    temp.append(std::to_string(_gDevice_List.size()+1));
-    temp_two.append(std::to_string((_gDevice_List.size() + 1) * _gDevice_List.size()+1));
-    const char* fielddefault[] = { temp.c_str(), temp.c_str()+5,
-                                   "",
-                                   temp_two.c_str(), temp_two.c_str(),
-                                   temp_two.c_str(), temp_two.c_str(),
-                                   temp_two.c_str(), temp_two.c_str(),
-                                   temp_two.c_str(), temp_two.c_str(), 0 };
-    TextInputBox_Fields(fieldname, DEFAULT_FIELD_LENGTH, ProcessData_AddDevice, fielddefault);
-    */
-//#else
     TextInputBox_Fields(fieldname, DEFAULT_FIELD_LENGTH, ProcessData_AddDevice, 0);
-//#endif
-    
+    key = KEY_ESC;
 }
 
 void RemoveDeviceSubmenu(const uint16_t value) {
-
     std::list<cModbus_Device>::iterator iter = std::find(_gDevice_List.begin(), _gDevice_List.end(), value);
     if (iter != _gDevice_List.end()) {
         stop_poller();
@@ -111,7 +99,6 @@ void RemoveDeviceSubmenu(const uint16_t value) {
     }
 
 }
-
 //build another sub menu populated with com ports
 void RemoveDevice(const uint16_t value) {
     
@@ -133,5 +120,6 @@ void RemoveDevice(const uint16_t value) {
             domenu(&ms);
         }
         delete[] ms.pMenu;
+        key = KEY_ESC;
     }
 }

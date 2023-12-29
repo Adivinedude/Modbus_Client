@@ -14,19 +14,12 @@ void ConnectTCP(const uint16_t value);
 void Disconnect(const uint16_t value);
 void ConnectionOptions(const uint16_t value);
 
-extern bool restart;
+extern volatile bool restart;
 
 void QuitProgram(const uint16_t value) {
-    stop_poller();
-    if (modbus) {
-        _gIsConnected = false;
-        modbus_close(modbus);
-        modbus_free(modbus);
-        modbus = 0;
-    }
-    _loop = 0;
-    DoExit(0);
     restart = 0;
+    key = KEY_ESC;
+    DoExit(0);
 }
 void Menu_Callback_Connect(const uint16_t value)
 {
@@ -101,30 +94,16 @@ void ConnectRTUSubmenu(const uint16_t value) {
     temp.append("\\\\.\\");
     temp.append(iter->substr(0, found));
 
-    connect_poller( temp.c_str() );
+    connect_modbus( temp.c_str() );
 }
 void ConnectTCP(const uint16_t value) {
     NotYetImplemented(0);
 }
 void Disconnect(const uint16_t value) {
-    if (_gIsConnected) {
-        stop_poller();
-        modbus_close(modbus);
-        modbus_free(modbus);
-        modbus = NULL;
-        _gIsConnected = false;
-        statusmsg("Disconnected");
-    }
+    disconnect_modbus();
+    statusmsg("Disconnected");
     key = KEY_ESC;
 }
-
-enum connection_options_enum {
-    baud = 0,
-    parity,
-    data_bit,
-    stop_bit
-};
-
 bool ProcessData_ConnectionOptions(char** fieldbuf, size_t fieldsize) {
     sConnection_Options o;
     try {
