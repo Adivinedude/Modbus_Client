@@ -1,5 +1,5 @@
 # Modbus Client
-This is a demo program for my [PCM_Modbus project](https://github.com/Adivinedude/PCM_Modbus). This program can make a serial connection to a modbus network, detect connected devices and detect device points for each device, Translate data point addresses into meaningful lables in a per-device manner. Currently only tested on windows 11.
+This is a demo program for my [PCM_Modbus project](https://github.com/Adivinedude/PCM_Modbus). This program can make a serial connection to a modbus network, detect connected devices and detect device points for each device, Translate data point addresses into meaningful labels in a per-device manner. Currently only tested on windows 11.
 
 # Credits
 This program uses and is based on the `tui.c` example from [PDCurses library](https://pdcurses.org/).
